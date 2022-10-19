@@ -8,15 +8,15 @@ If the table is already created in the database, you can skip this step.
 
 Otherwise, [follow this recipe to design and create the SQL schema for your table](./single_table_design_recipe_template.md).
 
-*In this template, we'll use an example table `students`*
+*In this template, we'll use an example table `recipes`*
 
 ```
 # EXAMPLE
 
-Table: students
+Table: recipes
 
 Columns:
-id | name | cohort_name
+id | name | cooking_time | rating
 ```
 
 ## 2. Create Test SQL seeds
@@ -27,7 +27,7 @@ If seed data is provided (or you already created it), you can skip this step.
 
 ```sql
 -- EXAMPLE
--- (file: spec/seeds_{table_name}.sql)
+-- (file: spec/seeds_recipe.sql)
 
 -- Write your SQL seed here. 
 
@@ -35,19 +35,22 @@ If seed data is provided (or you already created it), you can skip this step.
 -- so we can start with a fresh state.
 -- (RESTART IDENTITY resets the primary key)
 
-TRUNCATE TABLE students RESTART IDENTITY; -- replace with your own table name.
+TRUNCATE TABLE recipes RESTART IDENTITY; -- replace with your own table name.
 
 -- Below this line there should only be `INSERT` statements.
 -- Replace these statements with your own seed data.
 
-INSERT INTO students (name, cohort_name) VALUES ('David', 'April 2022');
-INSERT INTO students (name, cohort_name) VALUES ('Anna', 'May 2022');
+INSERT INTO recipes (name, cooking_time, rating) VALUES ('lasagna', 120, 5);
+INSERT INTO recipes (name, cooking_time, rating) VALUES ('parmiggiana', 45, 4);
+INSERT INTO recipes (name, cooking_time, rating) VALUES ('pumpkin soup', 30, 3);
+
+
 ```
 
 Run this SQL file on the database to truncate (empty) the table, and insert the seed data. Be mindful of the fact any existing records in the table will be deleted.
 
 ```bash
-psql -h 127.0.0.1 your_database_name < seeds_{table_name}.sql
+psql -h 127.0.0.1 your_database_name < seeds_recipe.sql
 ```
 
 ## 3. Define the class names
@@ -60,12 +63,12 @@ Usually, the Model class name will be the capitalised table name (single instead
 
 # Model class
 # (in lib/student.rb)
-class Album
+class Recipe
 end
 
 # Repository class
 # (in lib/student_repository.rb)
-class AlbumRepository
+class RecipeRepository
 end
 ```
 
@@ -83,7 +86,7 @@ Define the attributes of your Model class. You can usually map the table columns
 class Album
 
   # Replace the attributes by your own columns.
-  attr_accessor :id, :title, :release_year, :artist_id
+  attr_accessor :id, :name, :cooking_time, :rating
 end
 
 # The keyword attr_accessor is a special Ruby feature
@@ -110,20 +113,20 @@ Using comments, define the method signatures (arguments and return value) and wh
 # Repository class
 # (in lib/student_repository.rb)
 
-class AlbumRepository
+class RecipeRepository
 
   # Selecting all records
   # No arguments
   def all
     # Executes the SQL query:
-    # SELECT id, title, release, artist_id FROM albums;
+    # SELECT * FROM recipes;
 
     # Returns an array of Album objects.
   end
 
   def find(id)
     # Executes the SQL query:
-    # SELECT id, title, release, artist_id FROM albums WHERE id = $1;
+    # SELECT * FROM recipes WHERE id = $1;
 
     # Returns an array of Album objects.
   end
@@ -143,27 +146,26 @@ These examples will later be encoded as RSpec tests.
 # 1
 # Get all albums
 
-repo = AlbumRepository.new
+repo = RecipeRepository.new
 
-albums = repo.all
+recipes = repo.all
 
-albums.length #=> 2
-albums.first.title #=> 'Beautiful Trauma'
-albums.first.release_year #=> '2017'
-albums.first.artist_id #=> '1'
+recipes.length #=> 3
+recipes.first.name #=> 'lasagna'
+recipes.first.cooking_time #=> 120
+recipes.first.rating #=> 5
 
 
 # 2
 # Get album with id 1
 
-repo = AlbumRepository.new
+repo = RecipeRepository.new
 
-albums = repo.find(1)
+recipe = repo.find(1)
 
-albums.title #=> 'Beautiful Trauma'
-albums.release_year #=> '2017'
-albums.artist_id #=> '1'
-
+recipe.first.name #=> 'lasagna'
+recipe.first.cooking_time #=> 120
+recipe.first.rating #=> 5
 ```
 
 Encode this example as a test.
@@ -180,8 +182,8 @@ This is so you get a fresh table contents every time you run the test suite.
 # file: spec/student_repository_spec.rb
 
 def reset_students_table
-  seed_sql = File.read('spec/seeds_students.sql')
-  connection = PG.connect({ host: '127.0.0.1', dbname: 'music_library_test' })
+  seed_sql = File.read('spec/seeds_recipe.sql')
+  connection = PG.connect({ host: '127.0.0.1', dbname: 'recipes_test' })
   connection.exec(seed_sql)
 end
 
